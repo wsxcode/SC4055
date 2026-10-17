@@ -27,10 +27,16 @@ def _holm(p_values: list[float]) -> list[float]:
 
 def analyze(results_dir: str | Path) -> Path:
     results_dir = Path(results_dir)
-    folds = pd.read_csv(results_dir / "fold_results.csv")
+    tables_dir = results_dir / "tables"
+    figures_dir = results_dir / "figures"
+    report_dir = results_dir / "report"
+    metadata_dir = results_dir / "metadata"
+    for directory in (tables_dir, figures_dir, report_dir, metadata_dir):
+        directory.mkdir(parents=True, exist_ok=True)
+    folds = pd.read_csv(tables_dir / "fold_results.csv")
     nested = folds[folds.protocol == "nested_cv"].copy()
-    aggregate = pd.read_csv(results_dir / "aggregate_results.csv")
-    metadata = pd.read_json(results_dir / "run_metadata.json", typ="series")
+    aggregate = pd.read_csv(tables_dir / "aggregate_results.csv")
+    metadata = pd.read_json(metadata_dir / "run_metadata.json", typ="series")
     is_smoke = bool(metadata.get("smoke", False))
     tests = []
     for dataset, part in nested.groupby("dataset"):
@@ -59,14 +65,14 @@ def analyze(results_dir: str | Path) -> Path:
         for row, p_adj in zip(tests, adjusted, strict=True):
             row["holm_adjusted_p"] = p_adj
     tests_df = pd.DataFrame(tests)
-    tests_df.to_csv(results_dir / "paired_statistics.csv", index=False)
-    learning_curves = pd.read_csv(results_dir / "learning_curve_results.csv")
+    tests_df.to_csv(tables_dir / "paired_statistics.csv", index=False)
+    learning_curves = pd.read_csv(tables_dir / "learning_curve_results.csv")
 
     # Dataset-level ranks prevent datasets with larger target scales dominating.
     ranks = nested.groupby(["dataset", "model"], as_index=False).mae.mean()
     ranks["rank_within_dataset"] = ranks.groupby("dataset").mae.rank(method="average")
     rank_summary = ranks.groupby("model", as_index=False).rank_within_dataset.mean().sort_values("rank_within_dataset")
-    rank_summary.to_csv(results_dir / "cross_dataset_ranks.csv", index=False)
+    rank_summary.to_csv(tables_dir / "cross_dataset_ranks.csv", index=False)
     rank_best = rank_summary.iloc[0]
 
     datasets = list(nested.dataset.drop_duplicates())
@@ -80,7 +86,7 @@ def analyze(results_dir: str | Path) -> Path:
         ax.grid(axis="x", alpha=0.2)
     fig.suptitle("Kernel SVR performance by dataset")
     fig.tight_layout()
-    fig.savefig(results_dir / "mae_comparison.png", dpi=180, bbox_inches="tight")
+    fig.savefig(figures_dir / "mae_comparison.png", dpi=180, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -90,7 +96,7 @@ def analyze(results_dir: str | Path) -> Path:
     ax.set_title("Cross-dataset model ranks")
     ax.grid(axis="x", alpha=0.2)
     fig.tight_layout()
-    fig.savefig(results_dir / "cross_dataset_ranks.png", dpi=180, bbox_inches="tight")
+    fig.savefig(figures_dir / "cross_dataset_ranks.png", dpi=180, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -100,7 +106,7 @@ def analyze(results_dir: str | Path) -> Path:
     ax.set_title("Kernel spectral diagnostics")
     ax.grid(axis="x", alpha=0.2)
     fig.tight_layout()
-    fig.savefig(results_dir / "kernel_spectral_diagnostics.png", dpi=180, bbox_inches="tight")
+    fig.savefig(figures_dir / "kernel_spectral_diagnostics.png", dpi=180, bbox_inches="tight")
     plt.close(fig)
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10), squeeze=False)
@@ -116,7 +122,7 @@ def analyze(results_dir: str | Path) -> Path:
         ax.legend(fontsize=8)
     fig.suptitle("Learning curves (fixed nested-CV parameters)")
     fig.tight_layout()
-    fig.savefig(results_dir / "learning_curves.png", dpi=180, bbox_inches="tight")
+    fig.savefig(figures_dir / "learning_curves.png", dpi=180, bbox_inches="tight")
     plt.close(fig)
 
     report = [
@@ -154,17 +160,32 @@ def analyze(results_dir: str | Path) -> Path:
         "",
         "## Paired analysis",
         "",
-        f"The lowest mean within-dataset MAE rank is **{rank_best.model}** (mean rank {rank_best.rank_within_dataset:.2f}). {runtime_line} The paired Wilcoxon results in `paired_statistics.csv` compare each quantum model with each classical kernel on matching outer folds. Holm adjustment is applied across all {len(tests_df)} comparisons; no comparison is significant after adjustment (minimum adjusted p={adjusted_min:.4f}; minimum raw p={raw_min:.4f}). This run uses {int(nested.groupby('dataset').fold.nunique().min())} outer folds per dataset, so interpret the effect sizes and tests cautiously.",
+        f"The lowest mean within-dataset MAE rank is **{rank_best.model}** (mean rank {rank_best.rank_within_dataset:.2f}). {runtime_line} The paired Wilcoxon results in `../tables/paired_statistics.csv` compare each quantum model with each classical kernel on matching outer folds. Holm adjustment is applied across all {len(tests_df)} comparisons; no comparison is significant after adjustment (minimum adjusted p={adjusted_min:.4f}; minimum raw p={raw_min:.4f}). This run uses {int(nested.groupby('dataset').fold.nunique().min())} outer folds per dataset, so interpret the effect sizes and tests cautiously.",
         "The winner and best-classical-versus-best-quantum rows are post-hoc descriptive summaries selected from outer-fold means; they are not unbiased estimates for a model chosen in advance. The paired tests retain fixed model pairings and are reported separately.",
         "",
-        "## Figures and files",
+        "## Figures",
         "",
-        "- `mae_comparison.png`: MAE and fold variability by dataset.",
-        "- `cross_dataset_ranks.png`: mean within-dataset MAE ranks.",
-        "- `kernel_spectral_diagnostics.png`: fold-wise effective-rank comparison.",
-        "- `learning_curves.png`: fixed-parameter curves on each dataset's first outer split; parameters come from nested CV on the full first-fold training partition.",
-        "- `fold_results.csv` and `aggregate_results.csv`: detailed and summarized model results, including effective rank, PSD status, and runtime.",
-        "- `run_metadata.json`: dataset provenance, sampled row indices, configuration, environment, and seeds.",
+        "### MAE comparison",
+        "",
+        "![MAE comparison across datasets](../figures/mae_comparison.png)",
+        "",
+        "### Cross-dataset ranks",
+        "",
+        "![Mean model rank across datasets](../figures/cross_dataset_ranks.png)",
+        "",
+        "### Kernel spectral diagnostics",
+        "",
+        "![Effective rank of each kernel](../figures/kernel_spectral_diagnostics.png)",
+        "",
+        "### Learning curves",
+        "",
+        "![Learning curves by dataset and model](../figures/learning_curves.png)",
+        "",
+        "## Data files",
+        "",
+        "- `../tables/fold_results.csv` and `../tables/aggregate_results.csv`: combined fold-level and summarized results, including effective rank, PSD status, and runtime.",
+        "- `../datasets/<name>_fold_results.csv`: per-dataset fold results.",
+        "- `../metadata/run_metadata.json`: dataset provenance, sampled row indices, configuration, environment, and seeds.",
         "",
         "## Data and method references",
         "",
@@ -172,7 +193,7 @@ def analyze(results_dir: str | Path) -> Path:
         "",
         "The Auto MPG latest-model-year holdout is reported separately from nested-CV comparisons. Learning curves are descriptive fixed-parameter diagnostics, not independent holdout estimates. No hardware results are included.",
     ]
-    report_path = results_dir / "findings_report.md"
+    report_path = report_dir / "findings_report.md"
     report_path.write_text("\n".join(report) + "\n", encoding="utf-8")
     return report_path
 

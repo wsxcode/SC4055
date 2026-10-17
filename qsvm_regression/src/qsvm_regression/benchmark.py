@@ -12,7 +12,10 @@ from sklearn.decomposition import PCA
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from .experiment import AutoMPGData, load_auto_mpg
+
+AUTO_MPG_NUMERIC = [
+    "cylinders", "displacement", "horsepower", "weight", "acceleration", "model_year",
+]
 
 
 @dataclass
@@ -43,14 +46,32 @@ def _clean_columns(columns) -> list[str]:
 def load_regression_dataset(name: str) -> RegressionDataset:
     """Load one of the four registered public regression tasks."""
     if name == "auto_mpg":
-        data: AutoMPGData = load_auto_mpg()
+        from ucimlrepo import fetch_ucirepo
+
+        fetched = fetch_ucirepo(id=9)
+        X_frame = fetched.data.features.copy()
+        y_frame = fetched.data.targets.copy()
+        X_frame.columns = _clean_columns(X_frame.columns)
+        y_frame.columns = _clean_columns(y_frame.columns)
+        missing = set(AUTO_MPG_NUMERIC + ["origin"]) - set(X_frame.columns)
+        if missing:
+            raise ValueError(f"Auto MPG is missing predictor columns: {sorted(missing)}")
+        target_col = "mpg" if "mpg" in y_frame.columns else y_frame.columns[0]
+        X_frame = X_frame[AUTO_MPG_NUMERIC + ["origin"]].copy()
+        for column in X_frame:
+            X_frame[column] = pd.to_numeric(X_frame[column], errors="coerce")
+        y = pd.to_numeric(y_frame[target_col], errors="coerce").to_numpy(dtype=float)
+        source_rows = len(y)
+        keep = np.isfinite(y)
+        X_frame = X_frame.loc[keep].reset_index(drop=True)
+        y = y[keep]
         return RegressionDataset(
-            name="auto_mpg", X=data.X, y=data.y, target="mpg",
-            numeric_columns=["cylinders", "displacement", "horsepower", "weight", "acceleration", "model_year"],
+            name="auto_mpg", X=X_frame, y=y, target="mpg",
+            numeric_columns=AUTO_MPG_NUMERIC.copy(),
             categorical_columns=["origin"],
             citation="Quinlan, R. (1993). Auto MPG. UCI Machine Learning Repository.",
             doi="10.24432/C5859H", license="CC BY 4.0", source_id=9,
-            source_rows=len(data.y), temporal_year=data.model_year,
+            source_rows=source_rows, temporal_year=X_frame["model_year"].to_numpy(dtype=int),
         )
 
     from ucimlrepo import fetch_ucirepo
@@ -103,6 +124,18 @@ def load_regression_dataset(name: str) -> RegressionDataset:
         citation=spec["citation"], doi=spec["doi"], license="CC BY 4.0", source_id=spec["id"],
         source_rows=source_rows,
     )
+
+
+def temporal_year_split(years: np.ndarray, latest_count: int = 2) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Return train/test indices, holding out the latest distinct years."""
+    values = np.asarray(years)
+    unique_years = np.sort(np.unique(values))
+    if latest_count < 1 or latest_count >= len(unique_years):
+        raise ValueError("latest_count must leave at least one distinct year for training")
+    held_out_years = unique_years[-latest_count:]
+    test_idx = np.flatnonzero(np.isin(values, held_out_years))
+    train_idx = np.flatnonzero(~np.isin(values, held_out_years))
+    return train_idx, test_idx, held_out_years
 
 
 def select_fixed_sample(data: RegressionDataset, max_samples: int, seed: int) -> RegressionDataset:

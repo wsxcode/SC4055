@@ -24,17 +24,32 @@ Best classical versus best quantum model by nested-CV MAE:
 
 ## Paired analysis
 
-The lowest mean within-dataset MAE rank is **rbf** (mean rank 1.00). Mean kernel construction time was 0.0021s for classical kernels and 0.4062s for quantum simulation kernels, averaged across outer folds and configured kernels. The paired Wilcoxon results in `paired_statistics.csv` compare each quantum model with each classical kernel on matching outer folds. Holm adjustment is applied across all 48 comparisons; no comparison is significant after adjustment (minimum adjusted p=1.0000; minimum raw p=0.0625). This run uses 5 outer folds per dataset, so interpret the effect sizes and tests cautiously.
+The lowest mean within-dataset MAE rank is **rbf** (mean rank 1.00). Mean kernel construction time was 0.0021s for classical kernels and 0.4062s for quantum simulation kernels, averaged across outer folds and configured kernels. The paired Wilcoxon results in `../tables/paired_statistics.csv` compare each quantum model with each classical kernel on matching outer folds. Holm adjustment is applied across all 48 comparisons; no comparison is significant after adjustment (minimum adjusted p=1.0000; minimum raw p=0.0625). This run uses 5 outer folds per dataset, so interpret the effect sizes and tests cautiously.
 The winner and best-classical-versus-best-quantum rows are post-hoc descriptive summaries selected from outer-fold means; they are not unbiased estimates for a model chosen in advance. The paired tests retain fixed model pairings and are reported separately.
 
-## Figures and files
+## Figures
 
-- `mae_comparison.png`: MAE and fold variability by dataset.
-- `cross_dataset_ranks.png`: mean within-dataset MAE ranks.
-- `kernel_spectral_diagnostics.png`: fold-wise effective-rank comparison.
-- `learning_curves.png`: fixed-parameter curves on each dataset's first outer split; parameters come from nested CV on the full first-fold training partition.
-- `fold_results.csv` and `aggregate_results.csv`: detailed and summarized model results, including effective rank, PSD status, and runtime.
-- `run_metadata.json`: dataset provenance, sampled row indices, configuration, environment, and seeds.
+### MAE comparison
+
+![MAE comparison across datasets](../figures/mae_comparison.png)
+
+### Cross-dataset ranks
+
+![Mean model rank across datasets](../figures/cross_dataset_ranks.png)
+
+### Kernel spectral diagnostics
+
+![Effective rank of each kernel](../figures/kernel_spectral_diagnostics.png)
+
+### Learning curves
+
+![Learning curves by dataset and model](../figures/learning_curves.png)
+
+## Data files
+
+- `../tables/fold_results.csv` and `../tables/aggregate_results.csv`: combined fold-level and summarized results, including effective rank, PSD status, and runtime.
+- `../datasets/<name>_fold_results.csv`: per-dataset fold results.
+- `../metadata/run_metadata.json`: dataset provenance, sampled row indices, configuration, environment, and seeds.
 
 ## Data and method references
 

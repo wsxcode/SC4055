@@ -25,8 +25,14 @@ from sklearn.svm import SVR
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from qsvm_regression.benchmark import RegressionDataset, TabularFoldPreprocessor, load_regression_dataset, select_fixed_sample
-from qsvm_regression.experiment import (
+from qsvm_regression.benchmark import (
+    RegressionDataset,
+    TabularFoldPreprocessor,
+    load_regression_dataset,
+    select_fixed_sample,
+    temporal_year_split,
+)
+from qsvm_regression.kernels import (
     _compute_kernel,
     _environment_info,
     _git_info,
@@ -34,7 +40,6 @@ from qsvm_regression.experiment import (
     _kernel_diagnostics,
     _kernel_specs,
     _parameter_grid,
-    temporal_year_split,
 )
 
 logger = logging.getLogger(__name__)
@@ -186,10 +191,18 @@ def run_benchmark(config: dict[str, Any], output_dir: str | Path | None = None, 
         smoke_models = {"linear", "q_rot2dof_ideal", "q_rot2dof_noisy"}
         specs = [spec for spec in specs if spec["name"] in smoke_models]
 
-    output_path = Path(output_dir or config.get("output_dir", "results/multi_dataset_benchmark"))
+    default_output = "results/multi_dataset_smoke" if smoke else config.get(
+        "output_dir", "results/multi_dataset_benchmark",
+    )
+    output_path = Path(output_dir or default_output)
     if not output_path.is_absolute():
         output_path = PROJECT_ROOT / output_path
-    output_path.mkdir(parents=True, exist_ok=True)
+    tables_dir = output_path / "tables"
+    figures_dir = output_path / "figures"
+    metadata_dir = output_path / "metadata"
+    datasets_dir = output_path / "datasets"
+    for directory in (tables_dir, figures_dir, metadata_dir, datasets_dir):
+        directory.mkdir(parents=True, exist_ok=True)
     all_rows: list[dict[str, Any]] = []
     learning_rows: list[dict[str, Any]] = []
     dataset_metadata = []
@@ -224,13 +237,13 @@ def run_benchmark(config: dict[str, Any], output_dir: str | Path | None = None, 
 
     folds = pd.DataFrame(all_rows)
     aggregate = _aggregate(folds)
-    folds.to_csv(output_path / "fold_results.csv", index=False)
-    aggregate.to_csv(output_path / "aggregate_results.csv", index=False)
+    folds.to_csv(tables_dir / "fold_results.csv", index=False)
+    aggregate.to_csv(tables_dir / "aggregate_results.csv", index=False)
     learning_curves = pd.DataFrame(learning_rows)
-    learning_curves.to_csv(output_path / "learning_curve_results.csv", index=False)
+    learning_curves.to_csv(tables_dir / "learning_curve_results.csv", index=False)
     for name in names:
         subset = folds[folds.dataset == name]
-        subset.to_csv(output_path / f"{name}_fold_results.csv", index=False)
+        subset.to_csv(datasets_dir / f"{name}_fold_results.csv", index=False)
     metadata = {
         "timestamp": datetime.now().astimezone().isoformat(),
         "reference_methodology": "Kakavand, Strohmeyer, and Schlotter (2026), arXiv:2604.18837; methods adapted for a distinct regression benchmark.",
@@ -239,8 +252,8 @@ def run_benchmark(config: dict[str, Any], output_dir: str | Path | None = None, 
         "target_scaling": "StandardScaler fitted within each training partition; metrics reported on the original target scale.",
         "environment": _environment_info(), "git": _git_info(), "smoke": smoke,
     }
-    (output_path / "run_metadata.json").write_text(json.dumps(metadata, indent=2, default=str), encoding="utf-8")
-    _save_plot(aggregate, output_path)
+    (metadata_dir / "run_metadata.json").write_text(json.dumps(metadata, indent=2, default=str), encoding="utf-8")
+    _save_plot(aggregate, figures_dir)
     return folds, aggregate
 
 

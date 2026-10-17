@@ -12,4 +12,8 @@ python scripts/run_benchmark.py
 python scripts/analyze_benchmark.py
 ```
 
-The project separates reusable package code (`qsvm_regression/src/`), command-line scripts (`qsvm_regression/scripts/`), configurations (`qsvm_regression/configs/`), tests (`qsvm_regression/tests/`), and results (`qsvm_regression/results/`). The standalone Qiskit starter files are grouped under `examples/`.
+The benchmark keeps reusable code in `qsvm_regression/src/`, command-line
+scripts in `qsvm_regression/scripts/`, configuration in
+`qsvm_regression/configs/`, and combined outputs in
+`qsvm_regression/results/multi_dataset_benchmark/`. Auto MPG is included in
+that shared run. Standalone Qiskit starter files are grouped under `examples/`.
