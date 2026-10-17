@@ -1,0 +1,31 @@
+name: qsvm_regression_multi_dataset
+description: >-
+  Leakage-safe comparison of classical and simulator quantum kernel SVR across
+  four distinct public tabular regression datasets.
+datasets:
+  - auto_mpg
+  - concrete_strength
+  - energy_efficiency
+  - bike_sharing
+sampling:
+  max_samples: 500
+  random_seed: 42
+preprocess:
+  n_components: 4
+cv:
+  outer_folds: 5
+  inner_folds: 3
+  random_seed: 42
+temporal_holdout:
+  latest_year_count: 2
+svr:
+  C: [0.1, 1.0, 10.0, 100.0]
+  epsilon: [0.1, 0.5, 1.0]
+kernels:
+  classical: [linear, rbf, poly3]
+  quantum_feature_maps: [rot2dof, belis]
+  quantum_reps: 1
+  noisy_simulation:
+    depolarizing_1q: 0.001
+    depolarizing_2q: 0.01
+output_dir: results/multi_dataset_benchmark

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from experiment import (
+from qsvm_regression.experiment import (
     FoldPreprocessor,
     load_auto_mpg,
     temporal_year_split,

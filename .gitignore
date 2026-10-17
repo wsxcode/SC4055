@@ -37,4 +37,5 @@ htmlcov/
 Thumbs.db
 
 # Temporary smoke-run output; retain the completed experiment results
-/auto_mpg_regression/results/auto_mpg_smoke/
+/qsvm_regression/results/auto_mpg_smoke/
+/qsvm_regression/results/multi_dataset_smoke/

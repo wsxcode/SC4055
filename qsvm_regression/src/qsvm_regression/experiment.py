@@ -455,7 +455,8 @@ def run_experiment(
         )
     )
     configured_output = Path(output_dir or config.get("output_dir", "results/auto_mpg_regression"))
-    out_dir = configured_output if configured_output.is_absolute() else Path(__file__).resolve().parent / configured_output
+    project_dir = Path(__file__).resolve().parents[2]
+    out_dir = configured_output if configured_output.is_absolute() else project_dir / configured_output
     out_dir.mkdir(parents=True, exist_ok=True)
     fold_results.to_csv(out_dir / "fold_results.csv", index=False)
     aggregate.to_csv(out_dir / "aggregate_results.csv", index=False)
@@ -520,8 +521,8 @@ def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description=__doc__)
-    project_dir = Path(__file__).resolve().parent
-    parser.add_argument("--config", default=project_dir / "config.yaml", help="Experiment YAML file")
+    project_dir = Path(__file__).resolve().parents[2]
+    parser.add_argument("--config", default=project_dir / "configs/auto_mpg.yaml", help="Experiment YAML file")
     parser.add_argument("--output-dir", default=None, help="Override configured output directory")
     parser.add_argument("--smoke", action="store_true", help="Run a reduced CV smoke run")
     parser.add_argument("--log-level", default="INFO")
