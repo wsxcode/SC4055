@@ -1,0 +1,99 @@
+{
+  "timestamp": "2026-10-17T17:03:16.518639+08:00",
+  "method_reference": "Kakavand, S., Strohmeyer, C., and Schlotter, M. (2026). Benchmarking Quantum Kernel Support Vector Machines Against Classical Baselines on Tabular Data: A Rigorous Empirical Study with Hardware Validation. arXiv:2604.18837. https://arxiv.org/abs/2604.18837",
+  "config": {
+    "name": "auto_mpg_quantum_kernel_regression",
+    "description": "Nested-CV and later-model-year evaluation of quantum and classical precomputed-kernel SVR.",
+    "dataset": {
+      "source": "UCI Machine Learning Repository",
+      "uci_id": 9,
+      "target": "mpg",
+      "identifier": "car_name",
+      "temporal_column": "model_year"
+    },
+    "preprocess": {
+      "n_components": 4,
+      "random_seed": 42
+    },
+    "cv": {
+      "outer_folds": 5,
+      "inner_folds": 3,
+      "random_seed": 42
+    },
+    "temporal_holdout": {
+      "latest_year_count": 2
+    },
+    "svr": {
+      "C": [
+        0.1,
+        1.0,
+        10.0,
+        100.0
+      ],
+      "epsilon": [
+        0.1,
+        0.5,
+        1.0
+      ]
+    },
+    "kernels": {
+      "classical": [
+        "linear",
+        "rbf",
+        "poly3"
+      ],
+      "quantum_feature_maps": [
+        "rot2dof",
+        "belis"
+      ],
+      "quantum_reps": 1,
+      "noisy_simulation": {
+        "depolarizing_1q": 0.001,
+        "depolarizing_2q": 0.01
+      }
+    },
+    "output_dir": "results/auto_mpg_regression"
+  },
+  "dataset": {
+    "name": "Auto MPG",
+    "uci_id": 9,
+    "citation": "Quinlan, R. (1993). Auto MPG. UCI Machine Learning Repository. https://doi.org/10.24432/C5859H",
+    "license": "CC BY 4.0",
+    "n_samples": 398,
+    "n_features_before_encoding": 7,
+    "feature_columns": [
+      "cylinders",
+      "displacement",
+      "horsepower",
+      "weight",
+      "acceleration",
+      "model_year",
+      "origin"
+    ],
+    "target": "mpg",
+    "excluded_identifier": "car_name",
+    "latest_holdout_years": [
+      81,
+      82
+    ],
+    "temporal_train_size": 338,
+    "temporal_test_size": 60
+  },
+  "environment": {
+    "python_version": "3.12.5 (tags/v3.12.5:ff3bc82, Aug  6 2024, 20:45:27) [MSC v.1940 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "numpy": "2.5.2",
+      "pandas": "3.0.5",
+      "scikit-learn": "1.9.1",
+      "qiskit": "2.5.1",
+      "qiskit-aer": "0.17.2",
+      "ucimlrepo": "0.0.7",
+      "matplotlib": "3.11.1"
+    }
+  },
+  "git": {
+    "commit": "07f20fd17dd71551321d8cadf80610133ffea36f"
+  },
+  "smoke": false
+}
