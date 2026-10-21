@@ -1,0 +1,77 @@
+# Experiment protocol (frozen before running). Override sizes with --smoke.
+# Reported datasets: moons (classical-friendly), ad_hoc (quantum-friendly), heart (real-world).
+seed: 0                 # base seed for data subsampling and CV
+n_jobs: 10
+cache_dir: data/kernel_cache
+lambda_reg: 0.001       # regularisation for geometric difference / complexity
+C: [0.1, 1.0, 10.0, 100.0]
+cv:
+  repeats: 5            # repeated stratified CV, 5 seeds
+  outer_folds: 5
+  inner_folds: 3
+
+# Tuning budget is matched: C (4 values) x one kernel hyper-parameter (9 values for RBF and the quantum maps).
+models:
+  linear: {kind: classical, kernel: linear}
+  rbf:
+    {kind: classical, kernel: rbf, grid: {gamma_mult: [0.01, 0.03, 0.1, 0.3, 1.0, 3.0, 10.0, 30.0, 100.0]}}
+  poly:
+    {kind: classical, kernel: poly, grid: {gamma_mult: [0.03, 0.1, 0.3, 1.0], degree: [2, 3]}}
+  q_zz:
+    {kind: quantum, kernel: zz, reps: 2, entanglement: linear,
+     grid: {bandwidth: [0.01, 0.03, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0]}}
+  q_he:
+    {kind: quantum, kernel: he, reps: 2, entanglement: linear,
+     grid: {bandwidth: [0.01, 0.03, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0]}}
+  q_product:
+    {kind: quantum, kernel: product, grid: {bandwidth: [0.01, 0.03, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0]}}
+
+experiments:
+  main:                  # the three regimes at 4 qubits (moons is 2-D)
+    datasets: [moons, ad_hoc, heart]
+    n_qubits: 4
+    n_samples: 200
+  size:                  # learning curves: shrink the training partition
+    datasets: [ad_hoc, heart]
+    n_qubits: 4
+    n_samples: 200
+    train_sizes: [20, 40, 80, 160]
+  qubits:                # PCA components = qubits; ad_hoc generated in that dimension
+    datasets: [ad_hoc, heart]
+    n_qubits: [2, 3, 4, 5, 6, 8]
+    n_samples: 200
+  concentration:         # kernel off-diagonal statistics vs qubits and bandwidth (label-free)
+    n_qubits: [2, 3, 4, 5, 6, 7, 8, 10, 12]
+    bandwidths: [0.03, 0.1, 0.25, 0.5, 1.0, 2.0]
+    n_points: 150
+    real_dataset: heart
+  hyperparams:           # ZZ map: bandwidth x reps x entanglement (bandwidth NOT tuned here)
+    datasets: [ad_hoc, heart]
+    n_qubits: 4
+    n_samples: 200
+    bandwidths: [0.01, 0.03, 0.1, 0.25, 0.5, 1.0, 2.0, 4.0]
+    reps: [1, 2, 3]
+    entanglement: [linear, full]
+  noise:                 # ideal vs shot noise vs Aer depolarizing noise
+    datasets: [ad_hoc, heart]
+    n_qubits: 3
+    n_samples: 100
+    cv: {repeats: 2, outer_folds: 5, inner_folds: 3}
+    bandwidths: [0.5, 1.0, 2.0]
+    shots: [100, 1000, 10000]
+    depolarizing: [[0.0005, 0.005], [0.001, 0.01], [0.005, 0.05]]
+  runtime:
+    n_qubits: [2, 4, 6, 8]
+    n_points: [50, 100, 200]
+  suite:                 # many variants of the same three datasets, for the predict-then-verify test
+    n_samples: 200
+    moons:               # classical-friendly: noise level x subsample seed
+      noise: [0.1, 0.2, 0.3]
+      data_seeds: [0, 1, 2]
+    ad_hoc:              # quantum-friendly: generating circuit x dimension x label noise
+      n_features: [3, 4]
+      oracle_seeds: [0, 1, 2]
+      flips: [0.0, 0.15]
+    heart:               # real-world: subsample seed x qubits
+      data_seeds: [0, 1, 2]
+      n_qubits: [3, 4, 5]

@@ -1,0 +1,227 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,booktabs,graphicx,hyperref,xcolor}
+\usepackage[numbers]{natbib}
+\graphicspath{{prism-uploads/results/full/figures/}}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\tx}[1]{\texttt{#1}}
+
+\title{Predicting Quantum Kernel Advantage Before Training:\\A Matched-Budget Study on Small Datasets}
+\author{SC4055 Group \todo{number}\\ \todo{names and matriculation numbers}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We ask when a simulated quantum-kernel SVM beats a tuned classical SVM on small datasets, and whether a diagnostic computed on the training set can tell us in advance. We compare matched-budget quantum and classical kernels in three regimes: moons (classical-friendly), Havl\'i\v{c}ek-style ad hoc data (quantum-friendly), and UCI Heart Disease (real-world), and on 30 variants of these datasets. The quantum kernel wins only on the ad hoc data (0.877 vs 0.557 test accuracy for RBF), and this advantage disappears as the number of qubits grows (1.00 at 2 qubits, 0.50 at 8) because the kernel concentrates towards the identity. On moons all quantum kernels trail RBF (best 0.947 vs 0.992), and on Heart Disease no quantum kernel differs significantly from RBF (ZZ 0.803 vs 0.824). Across the 30 variants, the gap in kernel-target alignment between the best quantum and the best classical kernel, computed before training, separates every quantum win from every classical win (AUC 1.0, Spearman $\rho=0.93$) and tracks the size of the quantum advantage within the ad hoc family ($\rho=0.90$). A one-parameter switching rule built on it nearly matches an oracle when its threshold is fitted on other seeds (mean accuracy 0.861 vs 0.868), but it cannot transfer to a dataset family in which no quantum win has been seen. Model complexity behaved inversely to expectation.
+\end{abstract}
+
+\section{Introduction and Motivation}
+Consider a team with a few hundred labelled patient records and a handful of measurements per patient, who must choose a classifier. Kernel SVMs are a standard choice at this scale, where samples are scarce and measurement error is common. Quantum feature maps offer an alternative: a fidelity kernel whose feature space grows exponentially with the number of qubits~\cite{havlicek2019,schuld2019}. Whether this helps in practice is unclear. Systematic benchmarking found that out-of-the-box classical models generally outperform quantum classifiers on small tasks, and that removing entanglement from a quantum model often does not hurt~\cite{bowles2024}. Theory adds that quantum kernels can lose discriminative power as qubits increase~\cite{thanasilp2024}, and that a quantum advantage requires a kernel that a classical one cannot mimic~\cite{huang2021}. A practitioner therefore lacks a cheap way to decide, before running anything expensive, whether a quantum kernel is worth trying.
+
+We study this through three data regimes, chosen so that the expected winner differs:
+\begin{itemize}
+  \item \textbf{Classical-friendly:} \emph{moons}, a smooth 2-D problem on which a standard RBF kernel should be near-perfect.
+  \item \textbf{Quantum-friendly:} \emph{ad hoc} data, whose labels are generated from the quantum feature map itself~\cite{havlicek2019}. It is a positive control, not a realistic application.
+  \item \textbf{Real-world:} UCI \emph{Heart Disease}, a small, noisy, mixed-type clinical table.
+\end{itemize}
+
+We address three research questions.
+\begin{description}
+  \item[RQ1] Under matched tuning, when does a simulated quantum kernel outperform tuned classical kernels in each regime?
+  \item[RQ2] Can kernel-target alignment, model complexity and geometric difference, computed on training data only, predict the winner (predict-then-verify), and can they drive a useful model-selection rule?
+  \item[RQ3] How do qubit count, bandwidth, entanglement, training-set size and noise change the answer?
+\end{description}
+We work in simulation and make no claim of clinical value; Heart Disease serves as a realistic small, noisy tabular case.
+
+\section{Background}
+\subsection{Kernel SVMs}
+A kernel SVM classifies using a kernel $k(x,x')$ that acts as an inner product in a feature space. Training needs only the Gram matrix $K_{ij}=k(x_i,x_j)$, so any positive semi-definite kernel can be supplied as a precomputed matrix. The parameter $C$ trades margin width against training errors. Throughout, we pass precomputed Gram matrices to the same SVM solver for every kernel, so the only difference between models is the kernel.
+
+\subsection{Quantum fidelity kernels}
+A feature map $x\mapsto|\psi(x)\rangle=U(x)|0\rangle^{\otimes n}$ defines the kernel
+\begin{equation}
+  k_Q(x,y)=\left|\langle\psi(x)|\psi(y)\rangle\right|^2 .
+\end{equation}
+It is positive semi-definite because it is the squared magnitude of an inner product in Hilbert space, and satisfies $k_Q(x,x)=1$. We verified symmetry, unit diagonal and positive semi-definiteness numerically (Section~\ref{sec:impl}).
+
+\subsection{Pre-training diagnostics}
+With labels $y_i\in\{-1,+1\}$, $H=I-\frac{1}{N}\mathbf{1}\mathbf{1}^\top$, and kernels normalised to $\operatorname{tr}K=N$:
+\begin{align}
+  \mathrm{KTA}(K) &= \frac{\langle HKH,\,H yy^\top H\rangle_F}{\|HKH\|_F\,\|H yy^\top H\|_F} \quad\text{\cite{cortes2012}},\\
+  s_K(\lambda) &= \tfrac{1}{N}\,y^\top(K+\lambda I)^{-1}y, \\
+  g(K_C\|K_Q) &= \sqrt{\left\|\sqrt{K_Q}\,(K_C+\lambda I)^{-1}\sqrt{K_Q}\right\|_\infty} \quad\text{\cite{huang2021}}.
+\end{align}
+Centered alignment measures how well the kernel's similarity structure matches the label structure. The complexity $s_K$ is small when the labels are easy to represent with the kernel, and the generalisation bound of Huang et al.\ scales as $\sqrt{s_K/N}$. The geometric difference $g$ is close to 1 when the classical kernel $K_C$ can mimic $K_Q$; a large $g$ is necessary for a quantum advantage but not sufficient. We use $\lambda=10^{-3}$.
+
+\subsection{Kernel concentration}
+As the number of qubits grows, the off-diagonal entries of a fidelity kernel can concentrate exponentially around a constant~\cite{thanasilp2024}. The Gram matrix then approaches the identity, every pair of points looks equally dissimilar, and predictions on unseen inputs stop depending on the training data. We track the variance of the off-diagonal entries and the effective rank of the Gram matrix ($\exp$ of the spectral entropy), which approaches $N$ for an identity-like kernel.
+
+\section{Method}\label{sec:method}
+\subsection{Feature maps}
+One feature is encoded per qubit, and every feature is multiplied by a bandwidth $\beta$ before encoding. We use three maps.
+\begin{itemize}
+  \item \tx{zz}: the ZZ feature map of Havl\'i\v{c}ek et al. Each repetition applies Hadamards, phases $P(2x_i)$, and $CX$--$P(2(\pi-x_i)(\pi-x_j))$--$CX$ on linearly (or fully) entangled pairs. Default: 2 repetitions, linear entanglement.
+  \item \tx{he}: a hardware-efficient map, $R_Y(x_i)$ on every qubit followed by a ladder of controlled-$Z$ gates, repeated twice.
+  \item \tx{product}: $R_Y(x_i)$ on every qubit, with no entanglement. This is a separable control: its kernel factorises as $\prod_i\cos^2\!\big((x_i-y_i)/2\big)$ and can be computed classically.
+\end{itemize}
+
+\subsection{Classical baselines}
+Linear, RBF ($\gamma$ tuned) and polynomial (degree and $\gamma$ tuned) kernels.
+
+\subsection{Fair tuning}
+Every model is tuned by the same inner 3-fold cross-validation, over $C\in\{0.1,1,10,100\}$ and one kernel hyper-parameter: RBF scale $\gamma$ (9 values, $0.01$ to $100$ times the default), quantum bandwidth $\beta\in\{0.01,0.03,0.1,0.25,0.5,0.75,1,1.5,2\}$ (9 values), or, for the polynomial kernel, $\gamma\in\{0.03,0.1,0.3,1\}\times$ degree $\in\{2,3\}$. The quantum and RBF models therefore have the same tuning budget. The lower end of the quantum grid was extended to $0.01$ after a first run showed the ZZ kernel on Heart Disease selecting the smallest value in most folds.
+
+\subsection{Predict-then-verify}\label{sec:pv}
+We create many \emph{variants} of each dataset (Section~\ref{sec:datasets}). For every variant and every outer training fold we compute, on the training data only, the diagnostics above for each kernel, with each kernel's hyper-parameter chosen by maximising alignment (no SVM training involved). Per variant, we average over folds and record
+\begin{itemize}
+  \item the \emph{alignment gap}: the alignment of the best quantum map minus that of the best classical kernel (the best quantum map is the one with the highest alignment);
+  \item the complexity gap $\log s_{\mathrm{RBF}}-\log s_Q$, the geometric difference $g(K_{\mathrm{RBF}}\|K_Q)$, and the effective-rank fraction of the quantum Gram matrix (rank$/N$).
+\end{itemize}
+The outcome is the \emph{accuracy gap}: the best quantum map's mean test accuracy minus the best classical kernel's. We call a variant \emph{decisive} if $|$gap$|>0.01$. We report the area under the ROC curve (AUC) for separating quantum wins from classical wins among decisive variants, and the Spearman correlation with the accuracy gap over all variants, with 95\% bootstrap confidence intervals over variants.
+
+We also evaluate a \emph{switching rule}: use the quantum map with the highest training alignment if its alignment exceeds that of the tuned RBF kernel by more than a threshold $\tau$, otherwise use the tuned RBF model. The threshold is the value maximising mean accuracy on training variants, with ties resolved towards the classical choice. We evaluate it with $\tau$ fitted (a) leaving out all variants that share a seed with the evaluated one (leave-one-seed-out), and (b) leaving out the whole dataset family (leave-one-dataset-out). It is compared with always using tuned RBF, always using the ZZ kernel, and an oracle that picks the better of the quantum map and RBF.
+
+\section{Implementation}\label{sec:impl}
+Quantum kernels are computed with an exact statevector simulator written in NumPy for speed. We validated it against Qiskit statevectors for all three maps, several repetition counts and entanglement patterns, on 2--4 qubits (global phase ignored). Noisy kernels use Qiskit Aer (density-matrix method with depolarizing noise) or binomial shot sampling of the ideal kernel. The code has 36 automated tests covering simulator agreement with Qiskit, kernel symmetry and positive semi-definiteness, the factorisation of the product map, unbiasedness of shot noise, agreement of noiseless Aer with the statevector, the diagnostics on known values, the dataset variants, and the absence of data leakage in preprocessing.
+
+Preprocessing is fit on training data only, including inside the inner tuning folds: imputation, one-hot encoding of categorical columns, standardisation, PCA to the chosen number of components, and min--max scaling to $[0,\pi]$. The ad hoc data are generated in the target dimension and used unscaled, so that the matching ZZ kernel is exactly the generating one. Each finished experiment job is saved separately so interrupted runs can resume. All settings are in a single configuration file, and each result directory stores the configuration, git commit and package versions. \todo{Add the repository link and the commands to reproduce.}
+
+\section{Experiments}
+\subsection{Datasets}\label{sec:datasets}
+\begin{table}[h]\centering
+\begin{tabular}{p{0.15\linewidth}p{0.2\linewidth}p{0.57\linewidth}}\toprule
+Dataset & Regime & Notes\\\midrule
+moons & classical-friendly & 2-D; 200 samples; noise $0.15$ in the main experiments\\
+ad hoc & quantum-friendly & labels from a fixed random observable on the ZZ feature-map state, margin-filtered; 200 samples; generated in $n$ dimensions\\
+Heart Disease & real-world & UCI Cleveland, 303 rows; disease vs.\ none; missing values; mixed types; balanced subsample of 200\\\bottomrule
+\end{tabular}\end{table}
+All datasets are balanced and binary. The default setting uses 4 qubits (2 for moons). For the predict-then-verify test we build 30 variants: 9 moons variants (noise $0.1,0.2,0.3$, three subsample seeds), 12 ad hoc variants (3 or 4 qubits, three generating circuits, label noise $0$ or $15\%$) and 9 Heart Disease variants (three subsample seeds, 3, 4 or 5 qubits).
+
+\subsection{Protocol}
+$5\times5$ repeated stratified cross-validation (5 repeats of 5 outer folds, so 160 training and 40 test examples per fold) with nested tuning. We report accuracy as mean $\pm$ standard deviation over the 5 repeats. Significance uses the corrected resampled $t$-test~\cite{nadeau2003}, which accounts for the overlap between folds, with Holm correction across the 12 quantum-versus-classical comparisons of the main experiment.
+
+\subsection{Experiments}
+(i) Main comparison at 4 qubits. (ii) Training-set size, by shrinking the training partition to 20--160. (iii) Number of qubits, 2--8, where the Heart Disease PCA components equal the qubits and the ad hoc data are regenerated in that dimension. (iv) Kernel concentration versus qubits (up to 12) and bandwidth, on label-free data. (v) ZZ bandwidth, repetitions and entanglement, with the bandwidth fixed rather than tuned. (vi) Noise: ideal, finite shots (100, 1000, 10000) and Aer depolarizing noise at three levels (single/two-qubit error rates $5\!\times\!10^{-4}/5\!\times\!10^{-3}$, $10^{-3}/10^{-2}$, $5\!\times\!10^{-3}/5\!\times\!10^{-2}$), on 100 samples and 3 qubits. (vii) Runtime. (viii) The 30-variant suite of Section~\ref{sec:pv}.
+
+\section{Results}
+\subsection{Main comparison across the three regimes}
+Table~\ref{tab:main} and the figure below summarise the main comparison.
+\begin{table}[h]\centering\small
+\resizebox{\linewidth}{!}{\input{prism-uploads/results/full/tables/main_table.tex}}
+\caption{Test accuracy (mean $\pm$ std over 5 repeats, 4 qubits; 2 for moons). Bold: best model per dataset.}
+\label{tab:main}
+\end{table}
+
+\begin{figure}[h]\centering
+  \includegraphics[width=0.85\linewidth]{main_accuracy.png}
+  \caption{Test accuracy by dataset and model. The quantum kernel wins only on the ad hoc data.}
+\end{figure}
+
+\paragraph{Classical-friendly (moons).} RBF is best (0.992), followed by the polynomial kernel (0.978). The quantum kernels reach 0.947 (ZZ), 0.939 (hardware-efficient) and 0.874 (product). The product map is significantly worse than RBF (difference $-0.118$, Holm-adjusted $p<0.001$); the ZZ and hardware-efficient gaps ($-0.045$, $-0.053$) are also significant after correction, but only just (adjusted $p=0.045$ and $0.040$). The quantum kernels can solve the problem but gain nothing from their larger feature space.
+
+\paragraph{Quantum-friendly (ad hoc).} The ZZ kernel reaches 0.877, against 0.557 for RBF and about 0.5 for the linear and polynomial kernels. The difference is $+0.320$ ($t=5.5$, Holm-adjusted $p<0.001$). The hardware-efficient and product maps stay at chance (0.523, 0.545). The advantage therefore needs the matching circuit, not just any quantum map. Because the labels come from this very feature map, this result confirms that the pipeline works but is not evidence that quantum kernels help on real problems.
+
+\paragraph{Real-world (Heart Disease).} All models lie between 0.80 and 0.83. RBF scores 0.824; the best model is the product map (0.833) and the hardware-efficient map ties RBF (0.824). The ZZ kernel is lowest (0.803), a deficit of $0.021$ that is not significant (raw $p=0.44$). No quantum kernel offers a measurable benefit.
+
+\subsection{Number of qubits}
+\begin{figure}[h]\centering
+  \includegraphics[width=0.9\linewidth]{qubits_accuracy.png}
+  \caption{Test accuracy versus number of qubits (PCA components for Heart Disease; dimension of the generated data for ad hoc).}
+\end{figure}
+On the ad hoc data the ZZ accuracy falls from 1.000 at 2 qubits to 0.983, 0.877, 0.743 and 0.622 at 3, 4, 5 and 6 qubits, and to 0.496 at 8, which is chance. Over the same range the effective rank of its Gram matrix rises from 10 to 158 of 160 and its alignment falls from 0.37 to 0.08: the kernel approaches the identity. RBF is at 0.830 at 2 qubits and near 0.5 from 3 qubits onward. On Heart Disease, accuracy changes little with qubits; the ZZ kernel stays below RBF at every qubit count (by 0.013 to 0.044), while the hardware-efficient and product maps stay within 0.01 of RBF.
+
+\subsection{Bandwidth, depth and entanglement}
+\begin{figure}[h]\centering
+  \includegraphics[width=0.9\linewidth]{hyperparams.png}
+  \caption{ZZ kernel accuracy for fixed bandwidth, repetitions and entanglement ($C$ tuned only). The horizontal line is the tuned RBF model.}
+\end{figure}
+The ad hoc win is fragile: ZZ with two repetitions and linear entanglement scores 0.877 at bandwidth 1 but 0.553 at 0.5 and 0.474 at 2. On Heart Disease the accuracy is best at the smallest bandwidths (0.820 at 0.03, 0.804 at 0.01 for two repetitions and linear entanglement) and drops to 0.517 at 4; the best configuration overall (bandwidth 0.01, one repetition, full entanglement) reaches 0.826, against 0.824 for RBF. More repetitions hurt on real data (mean accuracy over bandwidths on Heart Disease with full entanglement: 0.73 with one repetition, 0.70 with two and 0.67 with three), while full versus linear entanglement made no consistent difference. The best real-data settings use the smallest bandwidth and a single repetition, consistent with the kernel becoming smoother and more RBF-like; we did not test this directly.
+
+\subsection{Training-set size}
+\begin{figure}[h]\centering
+  \includegraphics[width=0.9\linewidth]{size_curves.png}
+  \caption{Test accuracy versus training-set size.}
+\end{figure}
+On the ad hoc data the ZZ kernel keeps improving with more data (0.568, 0.686, 0.801, 0.877 for 20, 40, 80, 160 training examples) while RBF stays near 0.55. On Heart Disease the ZZ kernel is below RBF at every size, by 0.039 at 20 examples and by 0.006 to 0.027 at larger sizes (0.803 vs 0.824 at 160). The gap is largest with the fewest examples.
+
+\subsection{Kernel concentration}
+\begin{figure}[h]\centering
+  \includegraphics[width=\linewidth]{concentration.png}
+  \caption{Kernel concentration. Left: variance of off-diagonal entries of the ZZ kernel on uniform random data for several bandwidths. Middle: the three maps on real data (Heart Disease PCA features, bandwidth 1). Right: effective rank of the Gram matrix.}
+\end{figure}
+For the ZZ map at bandwidth 1 the off-diagonal variance falls from $5.6\times10^{-2}$ at 2 qubits to $1.5\times10^{-6}$ at 12, and the effective rank of a $150\times150$ Gram matrix rises to nearly 150, so the kernel is almost the identity. A small bandwidth (0.1) slows the decay (variance $2.4\times10^{-3}$ at 12 qubits), and at 0.03 the variance does not decay at all (from $1.2\times10^{-3}$ to $1.1\times10^{-2}$), but then the kernel is nearly constant. A $1/\sqrt n$ bandwidth rule, which we added as a guess, does \emph{not} prevent the decay ($3.8\times10^{-6}$ at 12 qubits). On Heart Disease data (bandwidth 1, 2--12 qubits) the hardware-efficient and product maps keep a variance between $2.2\times10^{-2}$ and $1.1\times10^{-1}$, whereas the ZZ variance collapses from $6.3\times10^{-2}$ to below $10^{-4}$. This explains the loss of ZZ accuracy with qubits on the ad hoc data.
+
+\subsection{Noise}
+\begin{figure}[h]\centering
+  \includegraphics[width=0.85\linewidth]{noise.png}
+  \caption{Test accuracy of the ZZ kernel under finite shots and Aer depolarizing noise (3 qubits, 100 samples, 2 repeats), with RBF for reference.}
+\end{figure}
+At these noise levels the ZZ kernel is essentially unaffected on the ad hoc data: 0.950 ideal, 0.94--0.955 with 100 to 10000 shots, and 0.955--0.960 under Aer noise. On Heart Disease the accuracies (0.715 ideal; 0.66--0.69 with shots; 0.675--0.710 under Aer noise) differ by amounts comparable to the standard deviation (0.03--0.04), so we do not interpret them. The noise levels are mild, the experiment is small, and our Aer kernel is a state-overlap proxy rather than a full compute--uncompute circuit; we therefore cannot conclude that realistic hardware noise is harmless.
+
+\subsection{Do pre-training diagnostics predict the winner?}
+Over the 30 variants, 20 are decisive: 12 quantum wins (all ad hoc) and 8 classical wins (all moons). The 9 Heart Disease variants are all within $\pm0.01$ and count as ties; one moons variant is also a tie. Table~\ref{tab:suite} lists the predictors and Table~\ref{tab:policy} the selection rule.
+
+\begin{table}[h]\centering\small
+\input{prism-uploads/results/full/tables/suite_predictors.tex}
+\caption{Predictors against the accuracy gap (best quantum minus best classical) over the 30 variants. AUC separates the 12 quantum wins from the 8 classical wins; $\rho$ is Spearman's correlation over all 30 variants with a 95\% bootstrap interval.}
+\label{tab:suite}
+\end{table}
+\begin{figure}[h]\centering
+  \includegraphics[width=\linewidth]{suite.png}
+  \caption{Left: alignment gap against accuracy gap for all 30 variants. Middle: the ad hoc variants alone. Right: mean accuracy of selection policies over the 30 variants, with 95\% bootstrap intervals.}
+\end{figure}
+
+\paragraph{Alignment.} The alignment gap separates the two outcomes perfectly (AUC $1.00$) and correlates strongly with the accuracy gap ($\rho=0.93$, interval $0.83$--$0.98$). Every quantum win has an alignment gap of at least $0.0075$, every classical win has a gap of at most $0.0002$, and the Heart Disease variants (ties) lie between $0.001$ and $0.009$, overlapping the smallest ad hoc gaps. The correlation across all variants is partly a separation between dataset families, so we also checked it within each family (Table~\ref{tab:within}). Within the ad hoc family the alignment gap tracks the advantage ($\rho=0.90$, $p<0.001$): both fall when 15\% label noise is added (mean alignment gap $0.105\to0.034$, mean accuracy gap $0.381\to0.204$) and when the dimension grows from 3 to 4 qubits ($0.097\to0.042$ and $0.341\to0.243$). Within moons and Heart Disease there is no significant association, because the accuracy gaps there are tiny ($|{\rm gap}|\le0.03$).
+\begin{table}[h]\centering\small
+\input{prism-uploads/results/full/tables/suite_within.tex}
+\caption{Alignment gap against accuracy gap within each dataset family.}
+\label{tab:within}
+\end{table}
+
+\paragraph{Other predictors.} The effective-rank fraction (AUC $1.00$, $\rho=0.84$) and the geometric difference (AUC $1.00$, $\rho=0.83$) also separate the families. The geometric difference of the selected quantum map is $1.3$--$1.8$ on moons, so a classical kernel can mimic it, and $3.7$--$4.9$ on the ad hoc data; but it is also large for the ZZ map on moons and Heart Disease in the main experiment ($g\approx106$ and $26$), where ZZ loses, so a large $g$ is not sufficient. The complexity gap behaved inversely to expectation ($\rho=-0.58$, AUC $0.00$): quantum wins coincide with a \emph{larger} complexity for the quantum kernel. We have no verified explanation.
+
+\paragraph{A model-selection rule.}
+\begin{table}[h]\centering\small
+\input{prism-uploads/results/full/tables/suite_policy.tex}
+\caption{Mean test accuracy of selection policies over dataset variants. Switching thresholds are fitted without the evaluated variant's seed group (leave-one-seed-out) or without its whole dataset family (leave-one-dataset-out).}
+\label{tab:policy}
+\end{table}
+With the threshold fitted on other seeds (fitted values between $0.0056$ and $0.0089$), the switching rule reaches a mean accuracy of $0.861$ (95\% interval $0.818$--$0.897$), against $0.745$ for always using tuned RBF and $0.868$ for the oracle. It matches the oracle on moons ($0.951$) and nearly on Heart Disease ($0.828$ vs $0.830$); on ad hoc it reaches $0.818$ against $0.834$, because one variant has an alignment gap just below the fitted threshold. It does not beat always using the ZZ kernel ($0.857$), which is strong here because 12 of the 30 variants are ad hoc. With the threshold fitted leaving out the whole dataset family, the rule scores $0.744$, equal to always using RBF: when ad hoc is held out, the other families contain no quantum win, the fitted threshold never switches, and the rule cannot discover a regime in which quantum helps.
+
+\subsection{Runtime}
+\begin{figure}[h]\centering
+  \includegraphics[width=0.75\linewidth]{runtime.png}
+  \caption{Gram-matrix computation time for the NumPy statevector simulator and noisy Aer simulation, compared with the RBF kernel.}
+\end{figure}
+Computing a $200\times200$ Gram matrix with our simulator takes 1 ms at 2 qubits and 38 ms at 8 qubits, against 1--2 ms for RBF. The Aer noisy kernel takes 0.20 s at 2 qubits and 1.7 s at 6 qubits. These are simulation times; they say nothing about hardware cost, and exact simulation grows exponentially with the number of qubits.
+
+\section{Discussion}
+\paragraph{When does a quantum kernel help?} In our experiments, only when the data structure matches the feature map. The ad hoc data show that the ZZ kernel can be far better than any classical kernel when labels come from that map, but the advantage is fragile: it needs the right map and bandwidth, shrinks with label noise and dimension, and falls to chance as qubits grow, because the kernel concentrates. On moons and Heart Disease there is no benefit, and the quantum kernels either match RBF (hardware-efficient and product maps on Heart Disease) or trail it. The product map, which is classically simulable, is as good as the entangled maps on the real data, in line with the finding that entanglement is often unnecessary for small tasks~\cite{bowles2024}.
+
+\paragraph{Why.} The ad hoc labels are defined through the quantum feature map, and none of the classical kernels we tried could represent them beyond two qubits, so the matching quantum kernel wins. On real data we interpret the results as follows (we did not test the mechanism directly): the quantum feature map's extra expressivity yields kernels that are either close to a smooth classical one (small bandwidth), which cannot beat RBF, or too peaked to generalise (large bandwidth or many qubits).
+
+\paragraph{Can we predict it?} Largely yes within the cases we built, with caveats. The alignment gap, computed before any SVM is trained, separates every quantum win from every classical win and tracks the size of the advantage within the ad hoc family. A one-parameter rule based on it avoids the losses of always using a quantum kernel and the missed wins of always using RBF, provided its threshold is calibrated on examples from the same family. It does not calibrate across families, and on real data it only reports that there is no clear difference, which is also what the accuracies show.
+
+\subsection{Limitations}
+\begin{itemize}
+  \item Kernels are simulated; there is no hardware, so we make no claim about runtime advantage.
+  \item Aer noise is a state-overlap proxy, not a full compute--uncompute circuit, omits readout error, and was tested at mild levels on small data.
+  \item The 30 variants come from three dataset families; all quantum wins are in one family, so the correlation across variants partly reflects the separation of families, and thresholds do not transfer between families.
+  \item The main experiments use one realisation of each dataset (seed 0); repetition is over CV splits, so standard deviations reflect split variance, not dataset variance. The suite adds seed variants only partly.
+  \item At most 200 samples and 8 qubits for model comparisons.
+  \item The polynomial grid was capped at $\gamma$-multiplier $\le 1$ because larger values made the solver impractically slow, and its best setting on moons was at the top of this grid, so it may be slightly under-tuned.
+  \item Quantum kernels at the smallest bandwidths are nearly constant and slow to train; the ZZ kernel on Heart Disease chooses $\beta=0.03$ in 13 of 25 main-experiment folds and $0.01$ in one.
+  \item Our explanation for the inverted complexity-gap result is tentative.
+\end{itemize}
+
+\section{Conclusion}
+A matched-budget comparison shows that a simulated quantum kernel beats a tuned classical SVM only on data constructed for it, and that this advantage shrinks with label noise and disappears as the number of qubits grows because of kernel concentration. On a classical-friendly dataset and on real clinical data the quantum kernels do not help: they either trail RBF or, for the hardware-efficient and product maps on Heart Disease, match it. Kernel-target alignment, computed before training, separated all quantum wins from all classical wins across 30 dataset variants and tracked the size of the advantage within the ad hoc family; a one-parameter rule built on it nearly matched an oracle when calibrated on other seeds but failed to transfer to a new family. For a practitioner with a small tabular dataset, the evidence here says to try a tuned classical kernel first, and to consider a quantum kernel only if a cheap alignment check indicates a clear advantage over the classical kernels.
+
+\section*{Author Contributions}
+\todo{One line per member: who wrote which section and built which component.}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+\end{document}

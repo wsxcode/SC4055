@@ -36,5 +36,11 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Temporary smoke-run output; retain the completed experiment results
-/qsvm_regression/results/multi_dataset_smoke/
+
+# qsvm_classification: caches and smoke output
+/qsvm_classification/data/kernel_cache/
+/qsvm_classification/results/smoke/
+/qsvm_classification/results_full_run.log
+/qsvm_classification/results/*/*/partial/
+/qsvm_classification/fold_timing.txt
+*.egg-info/
