@@ -158,8 +158,10 @@ def latex_main_table(summary: pd.DataFrame, path: Path) -> None:
     acc = summary.pivot(index="model", columns="dataset", values="acc")
     std = summary.pivot(index="model", columns="dataset", values="acc_std")
     cols = [d for d, _ in REGIMES if d in acc.columns]
-    lines = [r"\begin{tabular}{lccc}", r"\toprule",
-             r" & Classical-friendly & Quantum-friendly & Real-world \\",
+    regime_row = [r" & Classical-friendly & Quantum-friendly & Real-world \\"]
+    if not cols:  # datasets outside the three regimes (e.g. the `extra` experiment): plain header
+        cols, regime_row = list(acc.columns), []
+    lines = [r"\begin{tabular}{l" + "c" * len(cols) + "}", r"\toprule", *regime_row,
              "Model & " + " & ".join(c.replace("_", " ") for c in cols) + r" \\", r"\midrule"]
     for m in [m for m in MODEL_ORDER if m in acc.index]:
         cells = []
