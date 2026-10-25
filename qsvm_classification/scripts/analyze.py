@@ -516,6 +516,19 @@ def main():
                    "Corrected resampled t-tests (Nadeau-Bengio), Holm-adjusted across all rows:\n", md_table(tests) if len(tests) else "",
                    f"\nQuantum Gram matrices PSD fraction: {psd.to_dict() if psd is not None else 'n/a'}\n"]
 
+    extra = load(run_dir, "extra")
+    if extra is not None:
+        s = summarize(extra, ["dataset", "model"])
+        s.to_csv(tab_dir / "extra_summary.csv", index=False)
+        tests = paired_tests(extra, ["dataset"])
+        tests.to_csv(tab_dir / "extra_tests.csv", index=False)
+        bar_main(s, fig_dir / "extra_accuracy.png")
+        latex_main_table(s, tab_dir / "extra_table.tex")
+        report += ["## Extra datasets (4 qubits, same protocol as main)\n", md_table(s),
+                   "\n![extra](figures/extra_accuracy.png)\n",
+                   "Corrected resampled t-tests (Nadeau-Bengio), Holm-adjusted across all rows:\n",
+                   md_table(tests) if len(tests) else ""]
+
     size = load(run_dir, "size")
     if size is not None:
         s = summarize(size, ["dataset", "model", "train_size"])

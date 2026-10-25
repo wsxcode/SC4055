@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.datasets import load_breast_cancer, make_circles, make_moons
+from sklearn.datasets import load_breast_cancer, load_digits, load_wine, make_circles, make_moons
 from sklearn.decomposition import PCA
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
@@ -16,7 +16,7 @@ from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
 from .quantum import statevectors
 
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "cache"
-DATASETS = ("ad_hoc", "moons", "circles", "heart", "breast_cancer")
+DATASETS = ("ad_hoc", "moons", "circles", "heart", "breast_cancer", "wine", "digits")
 FIXED_DIM = {"moons": 2, "circles": 2}
 
 
@@ -134,6 +134,15 @@ def load_dataset(
     if name == "breast_cancer":
         b = load_breast_cancer(as_frame=True)
         X, y = b.data, b.target.to_numpy()
+        numeric, categorical = list(X.columns), []
+    elif name in ("wine", "digits"):
+        # wine: cultivar 1 vs 2 (the two that overlap most; 71 + 48 rows, 13 features)
+        # digits: 3 vs 8 (similar shapes; ~360 rows, 64 pixel features)
+        b = load_wine(as_frame=True) if name == "wine" else load_digits(as_frame=True)
+        pos, neg = (1, 2) if name == "wine" else (3, 8)
+        keep = b.target.isin([pos, neg]).to_numpy()
+        X = b.data[keep].reset_index(drop=True)
+        y = (b.target[keep].to_numpy() == pos).astype(int)
         numeric, categorical = list(X.columns), []
     elif name == "heart":
         X, y = _load_heart()
