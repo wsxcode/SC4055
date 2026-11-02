@@ -44,6 +44,62 @@ Corrected resampled t-tests (Nadeau-Bengio), Holm-adjusted across all rows:
 
 Quantum Gram matrices PSD fraction: {'q_he': 1.0, 'q_product': 1.0, 'q_zz': 1.0}
 
+## Extra datasets (4 qubits, same protocol as main)
+
+| dataset | model | acc | f1 | auc | acc_std | auc_std | n_folds |
+|---|---|---|---|---|---|---|---|
+| breast_cancer | linear | 0.963 | 0.963 | 0.987 | 0.006 | 0.004 | 25 |
+| breast_cancer | poly | 0.952 | 0.953 | 0.985 | 0.014 | 0.007 | 25 |
+| breast_cancer | q_he | 0.951 | 0.952 | 0.984 | 0.010 | 0.004 | 25 |
+| breast_cancer | q_product | 0.954 | 0.954 | 0.986 | 0.013 | 0.003 | 25 |
+| breast_cancer | q_zz | 0.938 | 0.941 | 0.979 | 0.013 | 0.005 | 25 |
+| breast_cancer | rbf | 0.952 | 0.952 | 0.987 | 0.012 | 0.002 | 25 |
+| circles | linear | 0.480 | 0.536 | 0.417 | 0.038 | 0.040 | 25 |
+| circles | poly | 0.999 | 0.999 | 1.000 | 0.002 | 0.000 | 25 |
+| circles | q_he | 0.995 | 0.995 | 1.000 | 0.000 | 0.000 | 25 |
+| circles | q_product | 0.998 | 0.998 | 1.000 | 0.003 | 0.000 | 25 |
+| circles | q_zz | 0.994 | 0.994 | 1.000 | 0.002 | 0.000 | 25 |
+| circles | rbf | 0.999 | 0.999 | 1.000 | 0.002 | 0.000 | 25 |
+| digits | linear | 0.958 | 0.956 | 0.992 | 0.008 | 0.002 | 25 |
+| digits | poly | 0.956 | 0.955 | 0.991 | 0.010 | 0.004 | 25 |
+| digits | q_he | 0.958 | 0.957 | 0.992 | 0.006 | 0.005 | 25 |
+| digits | q_product | 0.960 | 0.959 | 0.991 | 0.012 | 0.003 | 25 |
+| digits | q_zz | 0.949 | 0.947 | 0.991 | 0.010 | 0.006 | 25 |
+| digits | rbf | 0.955 | 0.954 | 0.992 | 0.007 | 0.002 | 25 |
+| wine | linear | 0.979 | 0.977 | 1.000 | 0.007 | 0.000 | 25 |
+| wine | poly | 0.977 | 0.975 | 1.000 | 0.009 | 0.001 | 25 |
+| wine | q_he | 0.983 | 0.982 | 1.000 | 0.006 | 0.001 | 25 |
+| wine | q_product | 0.981 | 0.979 | 1.000 | 0.005 | 0.001 | 25 |
+| wine | q_zz | 0.967 | 0.964 | 0.998 | 0.013 | 0.002 | 25 |
+| wine | rbf | 0.981 | 0.979 | 1.000 | 0.005 | 0.001 | 25 |
+
+![extra](figures/extra_accuracy.png)
+
+Corrected resampled t-tests (Nadeau-Bengio), Holm-adjusted across all rows:
+
+| dataset | quantum | vs | mean_diff | t | p_raw | p_holm |
+|---|---|---|---|---|---|---|
+| breast_cancer | q_he | rbf | -0.001 | -0.079 | 0.937 | 1.000 |
+| breast_cancer | q_he | linear | -0.012 | -1.084 | 0.289 | 1.000 |
+| breast_cancer | q_product | rbf | 0.002 | 0.232 | 0.819 | 1.000 |
+| breast_cancer | q_product | linear | -0.009 | -0.581 | 0.567 | 1.000 |
+| breast_cancer | q_zz | rbf | -0.014 | -0.680 | 0.503 | 1.000 |
+| breast_cancer | q_zz | linear | -0.025 | -1.120 | 0.274 | 1.000 |
+| circles | q_he | rbf | -0.004 | -0.794 | 0.435 | 1.000 |
+| circles | q_he | poly | -0.004 | -0.794 | 0.435 | 1.000 |
+| circles | q_product | rbf | -0.001 | -0.212 | 0.834 | 1.000 |
+| circles | q_product | poly | -0.001 | -0.371 | 0.714 | 1.000 |
+| circles | q_zz | rbf | -0.005 | -0.743 | 0.465 | 1.000 |
+| circles | q_zz | poly | -0.005 | -0.743 | 0.465 | 1.000 |
+| digits | q_he | rbf | 0.003 | 0.371 | 0.714 | 1.000 |
+| digits | q_he | linear | 0.000 | 0.000 | 1.000 | 1.000 |
+| digits | q_product | rbf | 0.005 | 0.486 | 0.631 | 1.000 |
+| digits | q_product | linear | 0.002 | 0.149 | 0.883 | 1.000 |
+| digits | q_zz | rbf | -0.006 | -0.352 | 0.728 | 1.000 |
+| digits | q_zz | linear | -0.009 | -0.484 | 0.633 | 1.000 |
+| wine | q_he | rbf | 0.002 | 0.207 | 0.838 | 1.000 |
+| wine | q_product | rbf | 0.000 | 0.000 | 1.000 | 1.000 |
+| wine | q_zz | rbf | -0.015 | -0.640 | 0.528 | 1.000 |
 ## Training-set size
 
 ![size](figures/size_curves.png)

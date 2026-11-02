@@ -33,7 +33,7 @@ from qsvm_clf.data import FIXED_DIM, load_dataset  # noqa: E402
 from qsvm_clf.evaluate import ModelSpec, expand_grid, model_from_config, run_cv  # noqa: E402
 from qsvm_clf.kernels import compute_gram  # noqa: E402
 
-EXPERIMENTS = ["main", "size", "qubits", "concentration", "hyperparams", "noise", "runtime", "suite"]
+EXPERIMENTS = ["main", "extra", "size", "qubits", "concentration", "hyperparams", "noise", "runtime", "suite"]
 
 
 # ------------------------------------------------------------------ helpers
@@ -199,7 +199,7 @@ def exp_runtime(cfg, e):
     return pd.DataFrame(rows)
 
 
-RUNNERS = {"main": exp_main, "size": exp_size, "qubits": exp_qubits, "concentration": exp_concentration,
+RUNNERS = {"main": exp_main, "extra": exp_main, "size": exp_size, "qubits": exp_qubits, "concentration": exp_concentration,
            "hyperparams": exp_hyperparams, "noise": exp_noise, "runtime": exp_runtime, "suite": exp_suite}
 
 

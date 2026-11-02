@@ -31,6 +31,10 @@ experiments:
     datasets: [moons, ad_hoc, heart]
     n_qubits: 4
     n_samples: 200
+  extra:                 # same protocol as main on four more datasets (Krittaphas's part)
+    datasets: [circles, breast_cancer, wine, digits]
+    n_qubits: 4
+    n_samples: 200
   size:                  # learning curves: shrink the training partition
     datasets: [ad_hoc, heart]
     n_qubits: 4
