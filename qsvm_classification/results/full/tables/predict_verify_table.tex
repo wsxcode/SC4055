@@ -1,0 +1,17 @@
+\begin{tabular}{llrrrrr}
+\toprule
+Subset & Predictor & Decisive & Baseline & Sign acc. & AUC & Spearman $\rho$ \\
+\midrule
+tuned models, all datasets & KTA gap (Q - C) & 27 & 0.67 & 0.78 & 0.87 & 0.64 \\
+tuned models, all datasets & complexity gap log(sC/sQ) & 27 & 0.67 & 0.52 & 0.38 & -0.06 \\
+tuned models, all datasets & geometric difference g\_CQ & 27 & 0.67 & -- & 0.36 & -0.14 \\
+\midrule
+tuned models, real data only & KTA gap (Q - C) & 7 & 0.86 & 1.00 & 1.00 & 0.56 \\
+tuned models, real data only & complexity gap log(sC/sQ) & 7 & 0.86 & 0.29 & 0.17 & -0.35 \\
+tuned models, real data only & geometric difference g\_CQ & 7 & 0.86 & -- & 0.00 & -0.62 \\
+\midrule
+ZZ sweep (bandwidth x reps x entanglement) & KTA gap (Q - C) & 84 & 0.95 & 0.98 & 0.93 & 0.58 \\
+ZZ sweep (bandwidth x reps x entanglement) & complexity gap log(sC/sQ) & 84 & 0.95 & 0.54 & 0.35 & -0.45 \\
+ZZ sweep (bandwidth x reps x entanglement) & geometric difference g\_CQ & 84 & 0.95 & -- & 0.24 & -0.62 \\
+\bottomrule
+\end{tabular}

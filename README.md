@@ -1,19 +1,19 @@
 # SC4055
 
-## QSVM regression benchmark
+## Quantum-kernel SVM: when does it help, and can we predict it?
 
-The benchmark project lives in [`qsvm_regression`](qsvm_regression/README.md). It compares classical and simulator-based quantum kernel SVR on Auto MPG, Concrete Compressive Strength, Energy Efficiency, and Bike Sharing.
+The project lives in [`qsvm_classification`](qsvm_classification/README.md). It
+compares classical and simulated quantum-kernel SVMs on binary classification
+(Havlicek-style ad hoc data, moons, circles, Heart Disease, Breast Cancer) and
+tests whether pre-training kernel diagnostics predict the winner.
 
 ```powershell
-cd qsvm_regression
-python -m pip install -r requirements.txt
-python scripts/run_benchmark.py --smoke
-python scripts/run_benchmark.py
-python scripts/analyze_benchmark.py
+cd qsvm_classification
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+pytest
+python scripts/run_experiments.py --experiment all --smoke
 ```
 
-The benchmark keeps reusable code in `qsvm_regression/src/`, command-line
-scripts in `qsvm_regression/scripts/`, configuration in
-`qsvm_regression/configs/`, and combined outputs in
-`qsvm_regression/results/multi_dataset_benchmark/`. Auto MPG is included in
-that shared run. Standalone Qiskit starter files are grouped under `examples/`.
+See the project README for the full protocol, experiments and limitations.

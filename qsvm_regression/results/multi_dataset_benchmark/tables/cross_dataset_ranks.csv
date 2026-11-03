@@ -1,8 +1,0 @@
-model,rank_within_dataset
-rbf,1.0
-linear,2.0
-poly3,4.0
-q_rot2dof_noisy,4.75
-q_rot2dof_ideal,5.25
-q_belis_ideal,5.25
-q_belis_noisy,5.75
