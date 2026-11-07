@@ -26,7 +26,7 @@ serves as a realistic small, noisy tabular case.
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt     # installs the package in editable mode
-pytest                               # 36 tests: simulator vs Qiskit, kernel properties, leakage, diagnostics, dataset variants
+pytest                               # 37 tests: simulator vs Qiskit, kernel properties, leakage, diagnostics, dataset variants
 ```
 
 Heart Disease is downloaded once from the UCI repository (via `ucimlrepo`) and cached in `data/cache/`.
@@ -37,6 +37,7 @@ Heart Disease is downloaded once from the UCI repository (via `ucimlrepo`) and c
 python scripts/run_experiments.py --experiment all --smoke   # ~1 min pipeline check
 python scripts/run_experiments.py --experiment all           # full protocol, results/full/<experiment>/results.csv
 python scripts/analyze.py --run full                         # tables, figures, results/full/report.md
+python scripts/screen.py --run full                          # screening tool on all 7 datasets -> results/full/tables/tool_table.tex
 ```
 
 Everything (datasets, grids, folds, noise levels) is in [`configs/default.yaml`](configs/default.yaml).
@@ -69,6 +70,19 @@ Each `results/<run>/<experiment>/metadata.json` records the config, git commit, 
 | `noise` | Ideal vs finite shots (100/1k/10k) vs Aer depolarizing noise (3 levels) |
 | `runtime` | Gram-matrix cost vs qubits and sample size |
 | `suite` | 30 dataset variants for the predict-then-verify test and the switching rule |
+
+### Screening tool
+
+`qsvm_clf.screening.recommend_kernel(X, y)` turns the switching rule into something a practitioner can run
+before training: it preprocesses the table, picks each kernel's hyper-parameter by training alignment, and
+recommends the best quantum map only if its alignment beats tuned RBF by more than `tau = 0.0063`
+(the rule's threshold fitted on all 30 suite variants; `python scripts/screen.py --fit-tau` recomputes it).
+No SVM is trained.
+
+```python
+from qsvm_clf.screening import recommend_kernel
+recommend_kernel(X, y, n_qubits=4)   # {'recommendation': 'rbf', 'delta': ..., 'tau': 0.0063, ...}
+```
 
 ## Scope and honest limitations
 

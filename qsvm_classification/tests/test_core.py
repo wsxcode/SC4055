@@ -152,3 +152,19 @@ def test_label_flip_and_moons_noise():
     h0 = load_dataset("heart", 100, seed=0)
     h1 = load_dataset("heart", 100, seed=1)
     assert not h0.X.equals(h1.X)                     # data seed changes the subsample
+
+
+def test_recommend_kernel():
+    from qsvm_clf.screening import recommend_kernel
+
+    # quantum-friendly positive control -> a quantum map; classical-friendly moons -> RBF
+    r = recommend_kernel(load_dataset("ad_hoc", 80, 0, 3), n_qubits=3)
+    assert r["use_quantum"] and r["delta"] > r["tau"]
+    r = recommend_kernel(load_dataset("moons", 80, 0), n_qubits=2)
+    assert r["recommendation"] == "rbf"
+    # raw arrays work too, and the returned numbers are consistent
+    X = np.random.default_rng(0).normal(size=(40, 6))
+    y = (X[:, 0] > 0).astype(int)
+    r = recommend_kernel(X, y, n_qubits=3)
+    assert r["n_features_used"] == 3 and 0 < r["rank_frac"] <= 1
+    assert np.isclose(r["delta"], r["alignment"][r["best_quantum_map"]] - r["alignment"]["rbf"])
