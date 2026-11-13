@@ -36,11 +36,9 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-
 # qsvm_classification: caches and smoke output
 /qsvm_classification/data/kernel_cache/
 /qsvm_classification/results/smoke/
 /qsvm_classification/results_full_run.log
 /qsvm_classification/results/*/*/partial/
 /qsvm_classification/fold_timing.txt
-*.egg-info/
