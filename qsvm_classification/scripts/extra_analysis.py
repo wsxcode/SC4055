@@ -1,7 +1,8 @@
-"""Extra analyses for the report: cluster bootstrap over seed groups, and sensitivity of the
-complexity gap / geometric difference to the regularisation lambda.
+"""Extra analyses for the report: cluster bootstrap over seed groups, sensitivity of the
+complexity gap / geometric difference to the regularisation lambda, and the alignment gap
+with matched candidate budgets (ZZ's 9 bandwidths against RBF's 9 scales).
 
-Reads results/full/tables/suite_instances.csv and the package in src/. Changes nothing else.
+Reads results/full/tables/suite_instances.csv, results/full/suite/results.csv and the package in src/.
 Usage (from qsvm_classification/):  python scripts/extra_analysis.py
 Writes results/full/tables/lambda_sensitivity.csv and prints the numbers quoted in the report.
 """
@@ -121,3 +122,16 @@ for lam in lams:
     print(f"B lam={lam:g}: complexity-gap rho={spearmanr(d.logs_gap, d.acc_gap)[0]:.2f} AUC={auc(dec.logs_gap, (dec.acc_gap>0).to_numpy()):.2f} | "
           f"g rho={spearmanr(d.g, d.acc_gap)[0]:.2f} AUC={auc(dec.g, (dec.acc_gap>0).to_numpy()):.2f} | g range {d.g.min():.1f}-{d.g.max():.1f}")
 R.to_csv(ROOT + "results/full/tables/lambda_sensitivity.csv", index=False)
+
+# ---------- C. matched-budget alignment gap ----------
+# The suite's alignment gap takes the best of 27 quantum candidates (3 maps x 9 bandwidths) against the best of
+# 18 classical ones. Here both sides get the same budget: ZZ's 9 bandwidths against RBF's 9 scales.
+suite = pd.read_csv(ROOT + "results/full/suite/results.csv")
+keys = ["dataset", "variant", "data_seed"]
+kta = suite.groupby(keys + ["model"]).diag_kta.mean().unstack("model").reset_index()
+mm = inst.merge(kta, on=keys)
+assert len(mm) == len(inst)
+gap = (mm.q_zz - mm.rbf).to_numpy()
+dec = (mm.acc_gap.abs() > 0.01).to_numpy()
+print(f"C matched ZZ(9) vs RBF(9): AUC={auc(gap[dec], (mm.acc_gap.to_numpy()[dec] > 0)):.2f} "
+      f"rho={spearmanr(gap, mm.acc_gap)[0]:.2f}")
