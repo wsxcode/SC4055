@@ -140,7 +140,7 @@ def plot_concentration(df, path):
         axes[1].semilogy(g.n_qubits, g.offdiag_var, marker="o", ms=3, color=c, label=fm)
         g = df[(df.feature_map == fm) & (df.source == "real") & (df.bandwidth_rule == "fixed") & (df.bandwidth == 1.0)]
         axes[2].plot(g.n_qubits, g.eff_rank, marker="o", ms=3, color=c, label=fm)
-    axes[1].set(title="Real data (breast cancer PCA), bw=1", xlabel="qubits", ylabel="Var of off-diagonal entries")
+    axes[1].set(title="Real data (Heart Disease PCA), bw=1", xlabel="qubits", ylabel="Var of off-diagonal entries")
     axes[2].set(title="Effective rank of the Gram matrix", xlabel="qubits", ylabel="effective rank (of 150)")
     axes[1].legend(fontsize=7)
     axes[2].legend(fontsize=7)
