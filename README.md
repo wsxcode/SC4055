@@ -30,7 +30,7 @@ README.md
 qsvm_classification/
   configs/default.yaml     all datasets, grids, folds and noise levels
   data/cache/              cached Heart Disease table
-  scripts/                 run_experiments.py, analyze.py, screen.py
+  scripts/                 run_experiments.py, analyze.py, screen.py, extra_analysis.py
   src/qsvm_clf/            package: data, kernels, quantum, evaluate, diagnostics, screening
   tests/                   pytest suite
   results/full/            raw results, figures/, tables/, report.md
@@ -56,6 +56,7 @@ python scripts/run_experiments.py --experiment all --smoke   # ~1 min pipeline c
 python scripts/run_experiments.py --experiment all           # full protocol, results/full/<experiment>/results.csv
 python scripts/analyze.py --run full                         # tables, figures, results/full/report.md
 python scripts/screen.py --run full                          # screening tool on all 7 datasets -> results/full/tables/tool_table.tex
+python scripts/extra_analysis.py                          # cluster bootstrap over seed groups + lambda sensitivity -> results/full/tables/lambda_sensitivity.csv
 ```
 
 Everything (datasets, grids, folds, noise levels) is in [`qsvm_classification/configs/default.yaml`](qsvm_classification/configs/default.yaml).
